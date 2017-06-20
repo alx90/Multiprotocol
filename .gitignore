@@ -1,5 +1,6 @@
-core/*
-libraries/*
+core
+libraries
+Release
 .settings/*
 .cproject
 .ino.cpp
