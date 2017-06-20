@@ -1,0 +1,6 @@
+core/*
+libraries/*
+.settings/*
+.cproject
+.ino.cpp
+.project
