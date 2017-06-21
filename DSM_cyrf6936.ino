@@ -381,17 +381,19 @@ uint16_t ReadDsm()
 			#else
 				phase=DSM_CHANSEL;							//Switch to normal mode
 			#endif
-			CYRF_WriteDataPacket(packet);
+			CYRF_WriteDataPacket(packet);					// #alx# send bind packet to receiver
 			return 10000;
 	#if defined DSM_TELEMETRY
+		// #alx# this case sets chip into receive mode, sets a time to wait before receiving answer packets from receiver and then switches phase from BIND_CHECK to BIND_READ passing to the next case
 		case DSM_BIND_CHECK:
 			//64 SDR Mode is configured so only the 8 first values are needed but we need to write 16 values...
 			CYRF_ConfigDataCode((const uint8_t *)"\x98\x88\x1B\xE4\x30\x79\x03\x84\xC9\x2C\x06\x93\x86\xB9\x9E\xD7", 16);
 			CYRF_SetTxRxMode(RX_EN);						//Receive mode
-			CYRF_WriteRegister(CYRF_05_RX_CTRL, 0x87);		//Prepare to receive
+			CYRF_WriteRegister(CYRF_05_RX_CTRL, 0x87);		//Prepare to receive #alx# sets to 1 RX_GO bit into 0x05 RX_CTRL_ADR registry
 			bind_counter=2*DSM_BIND_COUNT;					//Timeout of 4.2s if no packet received
 			phase++;										// change from BIND_CHECK to BIND_READ
 			return 2000;
+		// #alx# this case reads incoming binding packets from receiver if any incoming signal is found
 		case DSM_BIND_READ:
 			//Read data from RX
 			rx_phase = CYRF_ReadRegister(CYRF_07_RX_IRQ_STATUS);
@@ -400,7 +402,7 @@ uint16_t ReadDsm()
 			if((rx_phase & 0x07) == 0x02)
 			{ // data received with no errors
 				CYRF_WriteRegister(CYRF_07_RX_IRQ_STATUS, 0x80);	// need to set RXOW before data read
-				len=CYRF_ReadRegister(CYRF_09_RX_COUNT);
+				len=CYRF_ReadRegister(CYRF_09_RX_COUNT);			// #alx# checks if any data has been received
 				if(len>MAX_PKT-2)
 					len=MAX_PKT-2;
 				CYRF_ReadDataPacketLen(pkt+1, len);
@@ -408,7 +410,7 @@ uint16_t ReadDsm()
 				{
 					pkt[0]=0x80;
 					telemetry_link=1;						// send received data on serial
-					phase++;
+					phase++;								// #alx# change to CHANSEL
 					return 2000;
 				}
 			}
@@ -427,23 +429,26 @@ uint16_t ReadDsm()
 			}
 			return 7000;
 	#endif
+		// #alx# this case gets called after BIND_READ
 		case DSM_CHANSEL:
 			BIND_DONE;
 			DSM_cyrf_configdata();
-			CYRF_SetTxRxMode(TX_EN);
+			CYRF_SetTxRxMode(TX_EN); 						// #alx# binding is completed, can switch to Transmission mode
 			hopping_frequency_no = 0;
 			phase = DSM_CH1_WRITE_A;						// in fact phase++
 			DSM_set_sop_data_crc();
 			return 10000;
+		// #alx# these cases get called after CHANSEL in order to send control data to the receiver
 		case DSM_CH1_WRITE_A:
 		case DSM_CH1_WRITE_B:
 		case DSM_CH2_WRITE_A:
 		case DSM_CH2_WRITE_B:
 			DSM_build_data_packet(phase == DSM_CH1_WRITE_B||phase == DSM_CH2_WRITE_B);	// build lower or upper channels
 			CYRF_ReadRegister(CYRF_04_TX_IRQ_STATUS);		// clear IRQ flags
-			CYRF_WriteDataPacket(packet);
+			CYRF_WriteDataPacket(packet);					// #alx# send control packet to receiver
 			phase++;										// change from WRITE to CHECK mode
 			return DSM_WRITE_DELAY;
+		// #alx# these cases get called after CHx_WRITE in order to check return control data from the receiver
 		case DSM_CH1_CHECK_A:
 		case DSM_CH1_CHECK_B:
 		case DSM_CH2_CHECK_A:
@@ -529,6 +534,7 @@ uint16_t ReadDsm()
 	return 0;		
 }
 
+// #alx# DSM protocol init, this method sets the chip to TX mode and performs binding operations
 uint16_t initDsm()
 { 
 	CYRF_GetMfgData(cyrfmfg_id);
@@ -542,7 +548,7 @@ uint16_t initDsm()
 	   cyrfmfg_id[rx_tx_addr[0]%3]^=0x01;					//Change a bit so sop_col will be different from 0
 	   sop_col = (cyrfmfg_id[0] + cyrfmfg_id[1] + cyrfmfg_id[2] + 2) & 0x07;
 	}
-	//Hopping frequencies
+	//Hopping frequencies #alx# TODO
 	if (sub_protocol == DSMX_11 || sub_protocol == DSMX_22)
 		DSM_calc_dsmx_channel();
 	else
@@ -562,6 +568,7 @@ uint16_t initDsm()
 	}
 	//
 	DSM_cyrf_config();
+	// #alx# setting CYRF chip straight into TX mode in order to control the receiver
 	CYRF_SetTxRxMode(TX_EN);
 	//
 	DSM_update_channels();

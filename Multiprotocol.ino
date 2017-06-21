@@ -184,7 +184,7 @@ uint8_t pkt[MAX_PKT];//telemetry receiving packets
 typedef uint16_t (*void_function_t) (void);//pointer to a function with no parameters which return an uint16_t integer
 void_function_t remote_callback = 0;
 
-// Init
+// Init #alx# this method gets called only once at module startup
 void setup()
 {
 	// General pinout
@@ -362,6 +362,7 @@ void setup()
 		servo_max_100=PPM_MAX_100; servo_min_100=PPM_MIN_100;
 		servo_max_125=PPM_MAX_125; servo_min_125=PPM_MIN_125;
 
+		// #alx# protocol init call at module startup
 		protocol_init();
 
 		#ifndef STM32_BOARD
@@ -398,14 +399,17 @@ void setup()
 	servo_mid=servo_min_100+servo_max_100;	//In fact 2* mid_value
 }
 
-// Main
+// Main #alx# this method is the main program loop
 // Protocol scheduler
 void loop()
 { 
+	// #alx# next_callback is the number of microSecs to wait before executing next remote_callback
 	uint16_t next_callback,diff=0xFFFF;
 
+	// #alx# main loop cycle
 	while(1)
 	{
+		// #alx# execute Update_All() that will retry protocolInit() until remote_callback is not defined
 		if(remote_callback==0 || IS_WAIT_BIND_on || diff>2*200)
 		{
 			do
@@ -438,7 +442,7 @@ void loop()
 			TX_MAIN_PAUSE_on;
 			tx_pause();
 			if(IS_INPUT_SIGNAL_on && remote_callback!=0)
-				next_callback=remote_callback();
+				next_callback=remote_callback();	// #alx# this is where remote_callback() gets actually called
 			else
 				next_callback=2000;					// No PPM/serial signal check again in 2ms...
 			TX_MAIN_PAUSE_off;
@@ -781,6 +785,7 @@ static void protocol_init()
 				#endif
 			#endif
 			#ifdef CYRF6936_INSTALLED
+				// #alx# DSM protocol init call
 				#if defined(DSM_CYRF6936_INO)
 					case MODE_DSM:
 						PE2_on;	//antenna RF4

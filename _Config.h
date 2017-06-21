@@ -95,6 +95,8 @@
 //All the protocols will not fit in the Atmega328p module so you need to pick and choose.
 //Comment the protocols you are not using with "//" to save Flash space.
 
+// #alx# left active only DSM protocol
+
 //The protocols below need an A7105 to be installed
 //#define	FLYSKY_A7105_INO
 //#define	HUBSAN_A7105_INO
@@ -140,7 +142,8 @@
 //In this section you can configure the telemetry.
 
 //If you do not plan using the telemetry comment this global setting using "//" and skip to the next section.
-//#define TELEMETRY
+// #alx# disable global telemetry
+#define TELEMETRY
 
 //Comment to invert the polarity of the output telemetry serial signal.
 //This function takes quite some flash space and processor power on an atmega.
@@ -156,16 +159,17 @@
 
 //Uncomment to send Multi status and allow OpenTX to autodetect the telemetry format
 //Supported by OpenTX version 2.2 RC9 and newer. NOT supported by er9x/ersky9x use MULTI_STATUS instead.
-//#define MULTI_TELEMETRY
+#define MULTI_TELEMETRY
 
 //Comment a line to disable a specific protocol telemetry
+// #alx# disable specific telemetries (not necessary if global is disabled)
 #define DSM_TELEMETRY				// Forward received telemetry packet directly to TX to be decoded
-#define SPORT_TELEMETRY				// Use FrSkyX SPORT format to send telemetry to TX
-#define AFHDS2A_FW_TELEMETRY		// Forward received telemetry packet directly to TX to be decoded
-#define HUB_TELEMETRY				// Use FrSkyD Hub format to send telemetry to TX
-#define AFHDS2A_HUB_TELEMETRY		// Use FrSkyD Hub format to send telemetry to TX
-#define BAYANG_HUB_TELEMETRY		// Use FrSkyD Hub format to send telemetry to TX
-#define HUBSAN_HUB_TELEMETRY		// Use FrSkyD Hub format to send telemetry to TX
+//#define SPORT_TELEMETRY				// Use FrSkyX SPORT format to send telemetry to TX
+//#define AFHDS2A_FW_TELEMETRY		// Forward received telemetry packet directly to TX to be decoded
+//#define HUB_TELEMETRY				// Use FrSkyD Hub format to send telemetry to TX
+//#define AFHDS2A_HUB_TELEMETRY		// Use FrSkyD Hub format to send telemetry to TX
+//#define BAYANG_HUB_TELEMETRY		// Use FrSkyD Hub format to send telemetry to TX
+//#define HUBSAN_HUB_TELEMETRY		// Use FrSkyD Hub format to send telemetry to TX
 
 
 /****************************/
