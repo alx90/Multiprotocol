@@ -310,7 +310,7 @@ void setup()
 	delayMilliseconds(100);
 	
 	// Read status of bind button
-	if( IS_BIND_BUTTON_on )
+	if( IS_BIND_BUTTON_on )		// #alx# if pressing the BIND_BUTTON at startup, BIND_BUTTON_FLAG is set to ON
 		BIND_BUTTON_FLAG_on;	// If bind button pressed save the status for protocol id reset under hubsan
 
 	// Read status of mode select binary switch
@@ -442,7 +442,7 @@ void loop()
 			TX_MAIN_PAUSE_on;
 			tx_pause();
 			if(IS_INPUT_SIGNAL_on && remote_callback!=0)
-				next_callback=remote_callback();	// #alx# this is where remote_callback() gets actually called
+				next_callback=remote_callback();	// #alx# this is where remote_callback() gets actually called - note that after setup remote_callback() is readDSM()
 			else
 				next_callback=2000;					// No PPM/serial signal check again in 2ms...
 			TX_MAIN_PAUSE_off;
@@ -708,12 +708,14 @@ static void protocol_init()
 			TX_MAIN_PAUSE_off;
 		#endif
 
+		// #alx# global TX/RX_ID to bind Multi-module with Receiver
 		//Set global ID and rx_tx_addr
 		MProtocol_id = RX_num + MProtocol_id_master;
 		set_rx_tx_addr(MProtocol_id);
 		
 		blink=millis();
 
+		// #alx# if the bind button was pressed at startup, BIND_IN_PROGRESS flag will be set
 		if(IS_BIND_BUTTON_FLAG_on)
 			AUTOBIND_FLAG_on;
 		if(IS_AUTOBIND_FLAG_on)

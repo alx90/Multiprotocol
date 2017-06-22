@@ -23,6 +23,9 @@
 //One packet each 10msec
 #define DSM_BIND_COUNT 300
 
+/*
+ * #alx# phases enum, phases can stay the same or change at every loop according to operations flow
+ */
 enum {
 	DSM_BIND_WRITE=0,
 	DSM_BIND_CHECK,
@@ -211,12 +214,13 @@ static void __attribute__((unused)) DSM_build_bind_packet()
 	packet[15] = sum & 0xff;
 }
 
+// #alx# initialize bindig phase
 static void __attribute__((unused)) DSM_initialize_bind_phase()
 {
-	CYRF_ConfigRFChannel(DSM_BIND_CHANNEL); //This seems to be random?
+	CYRF_ConfigRFChannel(DSM_BIND_CHANNEL); //This seems to be random?		#alx# set fixed channel for binding (channel 13)
 	//64 SDR Mode is configured so only the 8 first values are needed but need to write 16 values...
 	CYRF_ConfigDataCode((const uint8_t*)"\xD7\xA1\x54\xB1\x5E\x89\xAE\x86\xc6\x94\x22\xfe\x48\xe6\x57\x4e", 16);
-	DSM_build_bind_packet();
+	DSM_build_bind_packet();	// #alx# build fixed BIND_PACKET that will be sent to the receiver
 }
 
 static void __attribute__((unused)) DSM_cyrf_configdata()
@@ -361,6 +365,7 @@ static uint8_t __attribute__((unused)) DSM_Check_RX_packet()
 	return result;
 }
 
+// #alx# main operations method called during loop phase
 uint16_t ReadDsm()
 {
 #define DSM_CH1_CH2_DELAY	4010			// Time between write of channel 1 and channel 2
@@ -374,6 +379,7 @@ uint16_t ReadDsm()
 	
 	switch(phase)
 	{
+		// #alx# fixed BIND_PACKET send phase
 		case DSM_BIND_WRITE:
 			if(bind_counter--==0)
 			#if defined DSM_TELEMETRY
@@ -381,10 +387,10 @@ uint16_t ReadDsm()
 			#else
 				phase=DSM_CHANSEL;							//Switch to normal mode
 			#endif
-			CYRF_WriteDataPacket(packet);					// #alx# send bind packet to receiver
+			CYRF_WriteDataPacket(packet);					// #alx# send pre built BIND_PACKET to receiver (chip is in TX mode at this point)
 			return 10000;
 	#if defined DSM_TELEMETRY
-		// #alx# this case sets chip into receive mode, sets a time to wait before receiving answer packets from receiver and then switches phase from BIND_CHECK to BIND_READ passing to the next case
+		// #alx# set chip into receive mode, and check if any answer from possible receivers is found (sets a timeout before checking again)
 		case DSM_BIND_CHECK:
 			//64 SDR Mode is configured so only the 8 first values are needed but we need to write 16 values...
 			CYRF_ConfigDataCode((const uint8_t *)"\x98\x88\x1B\xE4\x30\x79\x03\x84\xC9\x2C\x06\x93\x86\xB9\x9E\xD7", 16);
@@ -393,7 +399,7 @@ uint16_t ReadDsm()
 			bind_counter=2*DSM_BIND_COUNT;					//Timeout of 4.2s if no packet received
 			phase++;										// change from BIND_CHECK to BIND_READ
 			return 2000;
-		// #alx# this case reads incoming binding packets from receiver if any incoming signal is found
+		// #alx# read any eventual answer packet received
 		case DSM_BIND_READ:
 			//Read data from RX
 			rx_phase = CYRF_ReadRegister(CYRF_07_RX_IRQ_STATUS);
@@ -429,7 +435,7 @@ uint16_t ReadDsm()
 			}
 			return 7000;
 	#endif
-		// #alx# this case gets called after BIND_READ
+		// #alx# this case gets called when BINDING is completed (WRITE + CHECK + READ)
 		case DSM_CHANSEL:
 			BIND_DONE;
 			DSM_cyrf_configdata();
@@ -438,7 +444,7 @@ uint16_t ReadDsm()
 			phase = DSM_CH1_WRITE_A;						// in fact phase++
 			DSM_set_sop_data_crc();
 			return 10000;
-		// #alx# these cases get called after CHANSEL in order to send control data to the receiver
+		// #alx# the following cases get called after CHANSEL in order to send control data to the receiver
 		case DSM_CH1_WRITE_A:
 		case DSM_CH1_WRITE_B:
 		case DSM_CH2_WRITE_A:
@@ -572,16 +578,16 @@ uint16_t initDsm()
 	CYRF_SetTxRxMode(TX_EN);
 	//
 	DSM_update_channels();
-	//
+	// #alx# at "setup" time select the first phase to be executed when "looping" [readDSM()]
 	if(IS_AUTOBIND_FLAG_on )
 	{
 		BIND_IN_PROGRESS;
 		DSM_initialize_bind_phase();		
-		phase = DSM_BIND_WRITE;
+		phase = DSM_BIND_WRITE;			// #alx# selected if AUTOBIND is ON or if bind button is pressed at startup
 		bind_counter=DSM_BIND_COUNT;
 	}
 	else
-		phase = DSM_CHANSEL;//
+		phase = DSM_CHANSEL;			// #alx# selected if no binding operation is performed
 	return 10000;
 }
 
