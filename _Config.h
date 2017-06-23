@@ -74,6 +74,7 @@
 /*****************/
 /*** GLOBAL ID ***/
 /*****************/
+// #alx# check this about TX/RX_ID
 //A global ID is used by most protocols to bind and retain the bind to models. To prevent duplicate IDs, it is automatically
 // generated using a random 32 bits number the first time the eeprom is initialized.
 //If you have 2 Multi modules which you want to share the same ID so you can use either to control the same RC model

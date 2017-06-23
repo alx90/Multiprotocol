@@ -540,7 +540,7 @@ uint16_t ReadDsm()
 	return 0;		
 }
 
-// #alx# DSM protocol init, this method sets the chip to TX mode and performs binding operations
+// #alx# DSM protocol init, this method sets the chip to TX mode and performs preliminary binding operations
 uint16_t initDsm()
 { 
 	CYRF_GetMfgData(cyrfmfg_id);
@@ -554,7 +554,8 @@ uint16_t initDsm()
 	   cyrfmfg_id[rx_tx_addr[0]%3]^=0x01;					//Change a bit so sop_col will be different from 0
 	   sop_col = (cyrfmfg_id[0] + cyrfmfg_id[1] + cyrfmfg_id[2] + 2) & 0x07;
 	}
-	//Hopping frequencies #alx# TODO
+	//Hopping frequencies
+	// #alx# the transmitter changes channel at each loop according to a certain "hopping" pattern. Channel list calculation is based on Tx/RX_ID
 	if (sub_protocol == DSMX_11 || sub_protocol == DSMX_22)
 		DSM_calc_dsmx_channel();
 	else
@@ -574,7 +575,7 @@ uint16_t initDsm()
 	}
 	//
 	DSM_cyrf_config();
-	// #alx# setting CYRF chip straight into TX mode in order to control the receiver
+	// #alx# setting CYRF chip straight into TX mode in order send BIND_PACKET or CONTROL_PACKETS the receiver
 	CYRF_SetTxRxMode(TX_EN);
 	//
 	DSM_update_channels();
@@ -587,7 +588,7 @@ uint16_t initDsm()
 		bind_counter=DSM_BIND_COUNT;
 	}
 	else
-		phase = DSM_CHANSEL;			// #alx# selected if no binding operation is performed
+		phase = DSM_CHANSEL;			// #alx# selected if binding is already done
 	return 10000;
 }
 

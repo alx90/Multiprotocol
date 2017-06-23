@@ -77,6 +77,7 @@ uint16_t servo_max_100,servo_min_100,servo_max_125,servo_min_125;
 uint16_t servo_mid;
 
 // Protocol variables
+// #alx# TX/RX_ID for protocols using CYRF6936 (DSM, DEVO, ...)
 uint8_t  cyrfmfg_id[6];//for dsm2 and devo
 uint8_t  rx_tx_addr[5];
 uint8_t  rx_id[4];

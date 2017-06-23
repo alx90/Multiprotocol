@@ -1,21 +1,34 @@
-# Multiprotocol Tx Module software
+# Multiprotocol Tx Module firmware
 ### Forked from [DIY-Multiprotocol-TX-Module](https://github.com/pascallanger/DIY-Multiprotocol-TX-Module)
 
 ## Quicklinks
 * [Compiling and Programming guide](https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/blob/master/docs/Compiling.md)
 * [The old documentation](https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/blob/master/docs/README-old.md)
-* [CYRF6939 chip datasheet](http://www.cypress.com/file/126466/download)
+* [Radio control protocols overview](http://www.dronetrest.com/t/rc-radio-control-protocols-explained-pwm-ppm-pcm-sbus-ibus-dsmx-dsm2/1357)
+* [CYRF6936 chip datasheet](http://www.cypress.com/file/126466/download)
+* [CYRF6936 to microcontroller interface - firmware example](https://sites.google.com/site/mrdunk/interfacing-cypress-cyrf6936-to-avr-microcontrollers) 
 * [Forum on rcgroups](http://www.rcgroups.com/forums/showthread.php?t=2165676)
 
-## Main Flow Snippets:
+## System Overview
+Harware blocks overview:<br/>
+<img src="docs/hw_overview.png" width="700" height="400" /><br/>
+*note: telemetry can be enabled only when interfacing with the radio using serial protocol*
 
+The multi-module is in fact a micro-controller based board loaded with the Multiprotocol firmware.<br/>
+The firmware lets the board interface with 2 main HW components:
+1. A host RC radio:
+	- The original module can interface with the Radio using PPM(Pulse Position Modulation) or Serial protocol.
+2. A RF module that performs TX/RX operations to/from the model:
+	- The original module can interface with 4 different RF modules, in this in this particular implementation the CYRF6936 RF module is was chosen, and the examined protocol is DSMx.  
+
+## Main Flow Snippets:
 ### setup code
 ```c
 /* ##MultiProtocol.ino## */	
-typedef uint16_t (*void_function_t) (void);//pointer to a function with no parameters which return an uint16_t integer
+typedef uint16_t (*void_function_t) (void);	//pointer to a function with no parameters which return an uint16_t integer
 void_function_t remote_callback = 0;
 		
-setup() {		// ##MultiProtocol.ino-->setup()##		
+setup() {	// ##MultiProtocol.ino-->setup()##		
 	...
 	// Read status of bind button
 	if( IS_BIND_BUTTON_on )		// #alx# if pressing the BIND_BUTTON at startup, BIND_BUTTON_FLAG is set to ON
@@ -31,7 +44,7 @@ setup() {		// ##MultiProtocol.ino-->setup()##
 	...
 }
 
-static void protocol_init() {
+static void protocol_init() {	// ##Multiprotocol.ino-->protocolInit()##
 	static uint16_t next_callback;
 	if(IS_WAIT_BIND_off) {
 		...
@@ -73,7 +86,8 @@ static void protocol_init() {
 }
 
 /* ##DSM_cyrf6936.ino## */
-uint16_t initDsm()	{	// #alx# DSM protocol init, this method sets the chip to TX mode and performs binding operations
+// #alx# DSM protocol init, this method sets the chip to TX mode and performs preliminary binding operations
+uint16_t initDsm()	{	// ##DSM_cyrf6936.ino-->initDsm()##
 	...
 	//Hopping frequencies #alx# TODO
 	if (sub_protocol == DSMX_11 || sub_protocol == DSMX_22)
@@ -109,12 +123,12 @@ uint16_t initDsm()	{	// #alx# DSM protocol init, this method sets the chip to TX
 		bind_counter=DSM_BIND_COUNT;
 	}
 	else
-		phase = DSM_CHANSEL;			// #alx# selected if no binding operation is performed
+		phase = DSM_CHANSEL;			// #alx# selected if binding is already done
 	return 10000;
 }
 
 // #alx# initialize bindig phase
-static void __attribute__((unused)) DSM_initialize_bind_phase() {
+static void __attribute__((unused)) DSM_initialize_bind_phase() {	// ##DSM_cyrf6936.ino-->DSM_initialize_bind_phase()##
 	CYRF_ConfigRFChannel(DSM_BIND_CHANNEL); //This seems to be random?		#alx# set fixed channel for binding (channel 13)
 	//64 SDR Mode is configured so only the 8 first values are needed but need to write 16 values...
 	CYRF_ConfigDataCode((const uint8_t*)"\xD7\xA1\x54\xB1\x5E\x89\xAE\x86\xc6\x94\x22\xfe\x48\xe6\x57\x4e", 16);
@@ -126,7 +140,7 @@ static void __attribute__((unused)) DSM_initialize_bind_phase() {
 /* ##MultiProtocol.ino## */
 // Main #alx# this method is the main program loop
 // Protocol scheduler
-void loop() { 
+void loop() { 	// ##Multiprotocol.ino-->loop()##
 	// #alx# next_callback is the number of microSecs to wait before executing next remote_callback
 	uint16_t next_callback,diff=0xFFFF;
 	// #alx# main loop cycle
@@ -172,8 +186,7 @@ enum {
 	DSM_CH2_READ_B,
 };
 
-uint8_t Update_All()
-{
+uint8_t Update_All() {	// ##DSM_cyrf6936.ino-->Update_All()##
 	...
 	#ifdef ENABLE_BIND_CH
 		if(IS_AUTOBIND_FLAG_on && IS_BIND_CH_PREV_off && Servo_data[BIND_CH-1]>PPM_MAX_COMMAND && Servo_data[THROTTLE]<(servo_min_100+25))
@@ -192,7 +205,7 @@ uint8_t Update_All()
 }
 
 // #alx# main operations method called during loop phase
-uint16_t ReadDsm() {
+uint16_t ReadDsm() {	// ##DSM_cyrf6936.ino-->ReadDsm()##
 	...
 	switch(phase) {
 		// #alx# fixed BIND_PACKET send phase
@@ -310,17 +323,20 @@ uint16_t ReadDsm() {
 	```
 
 ## TODO
-- CHECK WHERE GLOBAL __TX/RX_ID__ IS USED - note: ReadDSM()->CYRF_WriteDataPacket(__packet__); // __packet__ should contain the TX/RX_ID somewhere... 
 - __FW COMPILATION:__ try to import the project into Arduino IDE in windows env and make it compile. If it compiles, try to make the same in Sloeber under windows. Check [Compiling and Programming guide](https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/blob/master/docs/Compiling.md) for IDE settings.
+	- [x] original code with updated _Config.h
+	- [ ] updated code
 - __FW IMPLEMENTATION:__ A PRE_BIND phase must be added before the binding phase. In this phase the software should:
 	- Set in receive mode and check if any other module is already transmitting with a given ID
 	- If any module is detected:
 		- Read the ID from the already transmitting module
-		- Send the ID to the receiver and perform the binding phase with the detected ID
+		- Generate channel list using the detected ID
+		- Send the detected ID to the receiver and perform the binding phase // NOTE: the already transmitting radio will still maintain control over the receiver??? 
 	<br/>
 	- Change initDSM() so that the new PRE_BIND phase is selected before looping
 	- Add the new PRE_BIND case into readDSM();
 	- Make the PRE_BIND phase selectable from _Config.h
+- CHECK WHERE GLOBAL __TX/RX_ID__ IS USED - note: ReadDSM()->CYRF_WriteDataPacket(__packet__); // __packet__ should contain the TX/RX_ID somewhere... 
 - __PPM or SERIAL:__ 
 - ___BV()__: "BV" stands for "bit value" and _BV() is a function that associates a numeric bit value to....
 - __bitwise assignment operators__ ^= etc...
