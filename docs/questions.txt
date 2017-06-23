@@ -1,0 +1,17 @@
+0) Mail: "modificare il codice in modo che, al posto di trasmettere immediatamente, provi ad “ascoltare” se qualcuno sta trasmettendo e, in caso lo trova, 
+inizia a trasmettere anticipando il trasmettitore rilevato. Questo serve sostanzialmente a prendere il controllo di un drone che sta volando…"
+
+Anticipare in che senso se il drone sta già volando? In caso scopra l'id di un drone che vola non resteremmo in 2 radiocomandi a controllarlo? 
+Forse si intende "anticipare" scoprendo l'id ancor prima che l'altro radiocomando faccia il binding?
+
+nota: La trasmissione avviene in frequency hopping cambiando continuamente il canale su cui radiocomando e drone comunicano. Come faccio ad inserirmi in una trasmissione in cui il canale cambia continuamente e
+a leggere l'id del radiocomando che già sta controllando? C'è modo di leggere allo stesso tempo tutti i canali? Anche se ci riuscissi come e "rubassi" l'id non rimarrebbero entrambi i radiocomandi a 
+controllare lo stesso drone?
+
+1) Descrizione dello scenario ipotizzato:
+	- radiocomando X sta provando ad effettuare il binding con il drone
+	- radiocomando Y resta in ascolto ed individua il segnale di binding del radiocomando X (contenente l'id di trasmissione)
+	- radiocomando Y legge l'id del radiocomando X ed effettua lui il binding con il drone anticipando X.
+
+2) Il controllo della presenza di altri eventuali radiocomandi che provano a bindare può essere fatto in fase di setup per un dato tempo e poi continuo con la normale esecuzione del flusso?
+ 

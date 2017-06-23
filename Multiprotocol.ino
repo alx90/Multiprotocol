@@ -709,10 +709,17 @@ static void protocol_init()
 			TX_MAIN_PAUSE_off;
 		#endif
 
-		// #alx# global TX/RX_ID to bind Multi-module with Receiver
-		//Set global ID and rx_tx_addr
-		MProtocol_id = RX_num + MProtocol_id_master;
-		set_rx_tx_addr(MProtocol_id);
+			/*
+			 * #alx#
+			 * check eventual signals from other radios
+			 * if any signal is found, steal the ID reading from detected data and use it as TX/RX_ID
+			 * else {
+			 */
+			// #alx# global TX/RX_ID to bind Multi-module with Receiver
+			//Set global ID and rx_tx_addr
+			MProtocol_id = RX_num + MProtocol_id_master;
+			set_rx_tx_addr(MProtocol_id);
+			/* } */
 		
 		blink=millis();
 
