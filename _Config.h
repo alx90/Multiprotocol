@@ -144,7 +144,7 @@
 
 //If you do not plan using the telemetry comment this global setting using "//" and skip to the next section.
 // #alx# disable global telemetry
-#define TELEMETRY
+//#define TELEMETRY
 
 //Comment to invert the polarity of the output telemetry serial signal.
 //This function takes quite some flash space and processor power on an atmega.

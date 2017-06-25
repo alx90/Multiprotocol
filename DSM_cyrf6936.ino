@@ -306,7 +306,7 @@ static void __attribute__((unused)) DSM_set_sop_data_crc()
 	read_code(code+8,pn_row,7 - sop_col + 1,8);			// 7-sop_col+1 between 1 and 7
 	CYRF_ConfigDataCode(code, 16);
 
-	CYRF_ConfigRFChannel(hopping_frequency[hopping_frequency_no]);
+	CYRF_ConfigRFChannel(hopping_frequency[hopping_frequency_no]);		// #alx# change channel according to the hopping frequency pattern
 	hopping_frequency_no++;
 	if(sub_protocol == DSMX_11 || sub_protocol == DSMX_22)
 		hopping_frequency_no %=23;

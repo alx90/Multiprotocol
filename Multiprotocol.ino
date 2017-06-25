@@ -345,7 +345,7 @@ void setup()
 #endif
 
 	// Read or create protocol id
-	MProtocol_id_master=random_id(10,false);
+	MProtocol_id_master=random_id(10,false);		// #alx# main protocol id creation, this will be used to generate TX/RX_ID
 	
 #ifdef ENABLE_PPM
 	//Protocol and interrupts initialization
@@ -410,7 +410,7 @@ void loop()
 	// #alx# main loop cycle
 	while(1)
 	{
-		// #alx# execute Update_All() that will retry protocolInit() until remote_callback is not defined
+		// #alx# execute Update_All() that will retry protocolInit() until remote_callback is not defined and binding is completed
 		if(remote_callback==0 || IS_WAIT_BIND_on || diff>2*200)
 		{
 			do
@@ -448,6 +448,11 @@ void loop()
 				next_callback=2000;					// No PPM/serial signal check again in 2ms...
 			TX_MAIN_PAUSE_off;
 			tx_resume();
+			/*
+			 * #alx#
+			 * if remote_callback() was called, then here waits till reaching the time returned from remote_callback() (11ms or 22ms)
+			 * otherwise next loop will be called immediately (next_callback=2000 < 4000)
+			 */
 			while(next_callback>4000)
 			{ // start to wait here as much as we can...
 				next_callback-=2000;				// We will wait below for 2ms
@@ -709,17 +714,10 @@ static void protocol_init()
 			TX_MAIN_PAUSE_off;
 		#endif
 
-			/*
-			 * #alx#
-			 * check eventual signals from other radios
-			 * if any signal is found, steal the ID reading from detected data and use it as TX/RX_ID
-			 * else {
-			 */
-			// #alx# global TX/RX_ID to bind Multi-module with Receiver
-			//Set global ID and rx_tx_addr
-			MProtocol_id = RX_num + MProtocol_id_master;
-			set_rx_tx_addr(MProtocol_id);
-			/* } */
+		// #alx# global TX/RX_ID to bind Multi-module with Receiver
+		//Set global ID and rx_tx_addr
+		MProtocol_id = RX_num + MProtocol_id_master;
+		set_rx_tx_addr(MProtocol_id);
 		
 		blink=millis();
 
@@ -983,6 +981,7 @@ static void protocol_init()
 		}
 	}
 
+	// #alx# if AUTOBIND is DISABLED and no binding operation is performed, WAIT_BIND flag is raised
 	#if defined(WAIT_FOR_BIND) && defined(ENABLE_BIND_CH)
 		if( IS_AUTOBIND_FLAG_on && ! ( IS_BIND_CH_PREV_on || IS_BIND_BUTTON_FLAG_on || (cur_protocol[1]&0x80)!=0 ) )
 		{

@@ -1,17 +1,69 @@
-0) Mail: "modificare il codice in modo che, al posto di trasmettere immediatamente, provi ad “ascoltare” se qualcuno sta trasmettendo e, in caso lo trova, 
-inizia a trasmettere anticipando il trasmettitore rilevato. Questo serve sostanzialmente a prendere il controllo di un drone che sta volando…"
+0) REQUISITO:
+Mail: "modificare il codice in modo che, al posto di trasmettere immediatamente, provi ad "ascoltare" se qualcuno sta trasmettendo e, 
+in caso lo trova,inizia a trasmettere anticipando il trasmettitore rilevato. 
+Questo serve sostanzialmente a prendere il controllo di un drone che sta volando..."
 
-Anticipare in che senso se il drone sta già volando? In caso scopra l'id di un drone che vola non resteremmo in 2 radiocomandi a controllarlo? 
-Forse si intende "anticipare" scoprendo l'id ancor prima che l'altro radiocomando faccia il binding?
+nota: La trasmissione avviene in frequency hopping cambiando continuamente il canale su cui radiocomando e drone comunicano, quindi 
+per poter rilevare l'id del radiocomando che sta già trasmettendo posso mettermi su un canale fisso ed ascoltare aspettando che il
+frequency hopping passi per quel canale.
 
-nota: La trasmissione avviene in frequency hopping cambiando continuamente il canale su cui radiocomando e drone comunicano. Come faccio ad inserirmi in una trasmissione in cui il canale cambia continuamente e
-a leggere l'id del radiocomando che già sta controllando? C'è modo di leggere allo stesso tempo tutti i canali? Anche se ci riuscissi come e "rubassi" l'id non rimarrebbero entrambi i radiocomandi a 
-controllare lo stesso drone?
+1) info telefonata
+- DSMx usa 23 canali, per mettersi in ascolto e beccare l'id si può selezionare un canale fisso su cui ascoltare e poi una volta che rilevo qualcosa 
+leggo i primi 2 byte dei dati ricevuti (quando fanno il binding mandano 4 dati ma in realtà sono utilizzati solo i primi 2?) e dovrei avere l'id...
 
-1) Descrizione dello scenario ipotizzato:
-	- radiocomando X sta provando ad effettuare il binding con il drone
-	- radiocomando Y resta in ascolto ed individua il segnale di binding del radiocomando X (contenente l'id di trasmissione)
-	- radiocomando Y legge l'id del radiocomando X ed effettua lui il binding con il drone anticipando X.
+- Con l'id genero la sequenza di canali attraverso l'algoritmo di frequency hopping esistente, 
 
-2) Il controllo della presenza di altri eventuali radiocomandi che provano a bindare può essere fatto in fase di setup per un dato tempo e poi continuo con la normale esecuzione del flusso?
- 
+- Ricevo pacchetto e sincronizzo la trasmissione anticipandola di un delta rispetto ai 22ms (0 11ms da approfondire) [periodo da controllare] 
+ovviamente poi il periodo di trasmissione resta lo stesso (11 o 22), anticipo solo il primo pacchetto che invio.
+
+2) Note implementazione:
+	- potrei ipotizzare uno scenario in cui, con l'autobind disabilitato, il modulo all'accensione resta ad ascoltare 
+	  finchè non succede uno dei 2 seguenti eventi:
+		1) trovo un altro radiocomando che trasmette --> leggo il suo id e inizio direttamente a controllare il drone con quell'id
+														 anticipando la trasmissione di un delta (1ms?) [sembrerebbe che il ricevitore 
+														 si sincronizza automaticamente con il primo segnale che riceve???]
+		2) premo il bottone per il binding --> vado avanti con il normale flusso del codice effettuando il binding come nel fw originale
+	nota: con autobinding abilitato invece il funzionamento resta quello del fw originale che prova subito a fare il binding etc etc...
+	
+modified flow [PPM interface, no telemetry]:
+	setup
+		|
+		|-> protocolInit() -> WAIT_BIND_on // ???check this
+	
+	loop
+		|
+		|-> while(IS_WAIT_BIND_on) { updateAll() }
+											|
+											|-> protocolInit() //??? when exactly does this get called
+
+COMINCIA L'IMPLENTAZIONE DAL readDsm() DOVE VA INSERITO IL LOOP DI ASCOLTO E POI TORNA INDIETRO 
+ALLA FASE DI SETUP CONSAPEVOLE DI QUELLO CHE SERVE PER ENTRARE NEL LOOP
+		
+		
+//Wait for bind
+#define WAIT_BIND_off		protocol_flags2 &= ~_BV(7)
+#define WAIT_BIND_on		protocol_flags2 |= _BV(7)
+#define IS_WAIT_BIND_on		( ( protocol_flags2 & _BV(7) ) !=0 )
+#define IS_WAIT_BIND_off	( ( protocol_flags2 & _BV(7) ) ==0 )
+
+
+
+
+		/* TODO #alx# here I could check if INTERCEPT_RADIO is active and if so
+		 	 #ifdef CYRF6936_INSTALLED
+				// #alx# DSM protocol init call
+				#if defined(DSM_CYRF6936_INO)
+					case MODE_DSM:
+						PE2_on;	//antenna RF4
+		* 				next_callback = initDsm(); // check and raise INTERCEPT_FLAG into initDsm()??? and set phase to INTERCEPT
+		* 										   // channels must not be generated now, but needs to be generated after finding the id
+		* 										   // in this case
+						//Servo_data[2]=1500;//before binding
+						remote_callback = ReadDsm;
+						break;
+				#endif
+
+			* then, when looping i need to check whether INTERCEPT_FLAG is on and if so, proceed by calling readDsm() with
+			* phase INTERCEPT. Into readDsm() the new INTERCEPT phase will perform the operations and eventually switch to
+			* next phases: READ_ID, GENERATE_FREQUENCIES (???now performed into initDsm()), transmit (maybe CHANSEL?) with time anticipation
+		 */

@@ -5,7 +5,9 @@
 * [Compiling and Programming guide](https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/blob/master/docs/Compiling.md)
 * [The old documentation](https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/blob/master/docs/README-old.md)
 * [Radio control protocols overview](http://www.dronetrest.com/t/rc-radio-control-protocols-explained-pwm-ppm-pcm-sbus-ibus-dsmx-dsm2/1357)
-* [CYRF6936 chip datasheet](http://www.cypress.com/file/126466/download)
+* [DSM protocol explained](https://wiki.paparazziuav.org/wiki/DSM)
+* [CYRF6936 datasheet](http://www.cypress.com/file/126466/download) [contains registers list]
+* [CYRF6936 technical reference manual](http://www.cypress.com/file/136666/download) [chapter 10 contains register descriptions]
 * [CYRF6936 to microcontroller interface - firmware example](https://sites.google.com/site/mrdunk/interfacing-cypress-cyrf6936-to-avr-microcontrollers) 
 * [Forum on rcgroups](http://www.rcgroups.com/forums/showthread.php?t=2165676)
 
@@ -17,9 +19,9 @@ Harware blocks overview:<br/>
 The multi-module is in fact a micro-controller based board loaded with the Multiprotocol firmware.<br/>
 The firmware lets the board interface with 2 main HW components:
 1. A host RC radio:
-	- The original module can interface with the Radio using PPM(Pulse Position Modulation) or Serial protocol.
+	- The module can interface with the Radio using PPM(Pulse Position Modulation) or Serial protocol.
 2. A RF module that performs TX/RX operations to/from the model:
-	- The original module can interface with 4 different RF modules, in this in this particular implementation the CYRF6936 RF module is was chosen, and the examined protocol is DSMx.  
+	- The module can interface with 4 different RF modules each one capable of handling several protocols to communicate with the receiver (in this in this particular implementation, DSMx protocol over CYRF6936 RF module is examined).  
 
 ## Main Flow Snippets:
 ### setup code
@@ -48,6 +50,13 @@ static void protocol_init() {	// ##Multiprotocol.ino-->protocolInit()##
 	static uint16_t next_callback;
 	if(IS_WAIT_BIND_off) {
 		...
+		/*
+		 * #alx# TODO
+		 * check eventual signals from other radios
+		 * if any signal is found, steal the ID reading from detected data, set it as global TX/RX_ID, 
+		 * then pass to binding phase (BIND_IN_PROGRESS?)
+		 * else {
+		 */
 		// #alx# global TX/RX_ID to bind Multi-module with Receiver
 		//Set global ID and rx_tx_addr
 		MProtocol_id = RX_num + MProtocol_id_master;
@@ -74,6 +83,7 @@ static void protocol_init() {	// ##Multiprotocol.ino-->protocolInit()##
 			...
 		}
 	}
+	// #alx# if AUTOBIND is DISABLED and no binding operation is performed (by pressing the button etc) WAIT_BIND flag is raised
 	#if defined(WAIT_FOR_BIND) && defined(ENABLE_BIND_CH)
 		if( IS_AUTOBIND_FLAG_on && ! ( IS_BIND_CH_PREV_on || IS_BIND_BUTTON_FLAG_on || (cur_protocol[1]&0x80)!=0 ) )
 		{
@@ -145,7 +155,7 @@ void loop() { 	// ##Multiprotocol.ino-->loop()##
 	uint16_t next_callback,diff=0xFFFF;
 	// #alx# main loop cycle
 	while(1) {
-		// #alx# execute Update_All() that will retry protocolInit() until remote_callback is not defined
+		// #alx# execute Update_All() that will retry protocolInit() until remote_callback is not defined and binding is completed
 		if(remote_callback==0 || IS_WAIT_BIND_on || diff>2*200)	{
 			do {
 				Update_All();
@@ -167,6 +177,23 @@ void loop() { 	// ##Multiprotocol.ino-->loop()##
 	}
 }
 
+uint8_t Update_All() {	// #Multiprotocol.ino-->Update_All()##
+	...
+	#ifdef ENABLE_BIND_CH
+		if(IS_AUTOBIND_FLAG_on && IS_BIND_CH_PREV_off && Servo_data[BIND_CH-1]>PPM_MAX_COMMAND && Servo_data[THROTTLE]<(servo_min_100+25))
+		{ // Autobind is on and BIND_CH went up and Throttle is low
+			CHANGE_PROTOCOL_FLAG_on;							//reload protocol to rebind
+			BIND_CH_PREV_on;
+		}
+		...
+	#endif //ENABLE_BIND_CH
+	if(IS_CHANGE_PROTOCOL_FLAG_on)
+	{ // Protocol needs to be changed or relaunched for bind
+		protocol_init();									//init new protocol
+		return 1;
+	}
+	return 0;
+} 
 /* ##DSM_cyrf6936.ino## */
 // #alx# readDSM phases enum
 enum {
@@ -284,6 +311,9 @@ uint16_t ReadDsm() {	// ##DSM_cyrf6936.ino-->ReadDsm()##
 - __CYRF6936:__ physical radio transceiver chip
 - __CYRF6936_SPI.ino__ is the low level "registry writer" driver class
 - __iface_cyrf6936.h__ is the header file where chip registries are defined using mnemonic names
+- __Channel selection:__
+	- Binding phase is realized using a fixed channel
+	- Control phases use a different channel at each loop according to frequency hopping pattern
 - __Frequency Hopping__: In frequency hopping systems, the transmitter changes the carrier frequency according to a certain "hopping" pattern . The advantage is that the signal sees a different channel (range of frequencies where the signal is transmitted) and a different set of interfering signals during each hop. This avoids the problem of failing communication at a particular frequency, because of a fade or a particular interferer.
 - __Binding notes:__
 	- If __Autobind__ is set to Yes, At the model selection (or power applied to the TX) a bind sequence will be initiated
@@ -304,6 +334,7 @@ uint16_t ReadDsm() {	// ##DSM_cyrf6936.ino-->ReadDsm()##
 	1. Send out packet to receiver; 
 	2. Wait for response from the receiver;
 	3. Read response data if any answer has been received.
+- __DSMX protocol:__ In the DSMX protocol the transmitter and receiver both use the transmitter radio chip ID,which is send during the binding process, for generating 23 channels. Each time the transmitter transmits a packet or the receiver receives a packet they will hop to the next channel. TODO continue from here....
 
 ### General
 - Arduino Sketch:
