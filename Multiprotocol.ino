@@ -77,7 +77,6 @@ uint16_t servo_max_100,servo_min_100,servo_max_125,servo_min_125;
 uint16_t servo_mid;
 
 // Protocol variables
-// #alx# TX/RX_ID for protocols using CYRF6936 (DSM, DEVO, ...)
 uint8_t  cyrfmfg_id[6];//for dsm2 and devo
 uint8_t  rx_tx_addr[5];
 uint8_t  rx_id[4];
@@ -310,9 +309,18 @@ void setup()
 	//Wait for every component to start
 	delayMilliseconds(100);
 	
-	// Read status of bind button
-	if( IS_BIND_BUTTON_on )		// #alx# if pressing the BIND_BUTTON at startup, BIND_BUTTON_FLAG is set to ON
-		BIND_BUTTON_FLAG_on;	// If bind button pressed save the status for protocol id reset under hubsan
+	// alx {
+	#ifdef DSM_INTERCEPT_RADIO
+		// While in intercept mode, disable all binding flags
+		BIND_BUTTON_FLAG_off;
+		AUTOBIND_FLAG_off;
+		WAIT_BIND_off;		// probably clearing just this could be enough, needs testing...
+	#else
+		// Read status of bind button
+		if( IS_BIND_BUTTON_on )		// #alx# if pressing the BIND_BUTTON at startup, BIND_BUTTON_FLAG is set to ON
+			BIND_BUTTON_FLAG_on;	// If bind button pressed save the status for protocol id reset under hubsan
+	#endif
+	// } alx
 
 	// Read status of mode select binary switch
 	// after this mode_select will be one of {0000, 0001, ..., 1111}
@@ -345,7 +353,7 @@ void setup()
 #endif
 
 	// Read or create protocol id
-	MProtocol_id_master=random_id(10,false);		// #alx# main protocol id creation, this will be used to generate TX/RX_ID
+	MProtocol_id_master=random_id(10,false);		// #alx# main protocol id creation, this will be used to generate TxId
 	
 #ifdef ENABLE_PPM
 	//Protocol and interrupts initialization
@@ -714,7 +722,7 @@ static void protocol_init()
 			TX_MAIN_PAUSE_off;
 		#endif
 
-		// #alx# global TX/RX_ID to bind Multi-module with Receiver
+		// #alx# global TxId to bind Multi-module with Receiver
 		//Set global ID and rx_tx_addr
 		MProtocol_id = RX_num + MProtocol_id_master;
 		set_rx_tx_addr(MProtocol_id);
@@ -797,7 +805,13 @@ static void protocol_init()
 				#if defined(DSM_CYRF6936_INO)
 					case MODE_DSM:
 						PE2_on;	//antenna RF4
-						next_callback = initDsm();
+						// alx {
+						#ifdef DSM_INTERCEPT_RADIO
+							next_callback = initDsmIntx();
+						#else
+							next_callback = initDsm();
+						#endif
+						// } alx
 						//Servo_data[2]=1500;//before binding
 						remote_callback = ReadDsm;
 						break;
@@ -981,7 +995,7 @@ static void protocol_init()
 		}
 	}
 
-	// #alx# if AUTOBIND is DISABLED and no binding operation is performed, WAIT_BIND flag is raised
+	// #alx# if WAIT_FOR_BIND is enabled and no binding operation is performed, then keep on waiting for bind (WAIT_BIND_on)
 	#if defined(WAIT_FOR_BIND) && defined(ENABLE_BIND_CH)
 		if( IS_AUTOBIND_FLAG_on && ! ( IS_BIND_CH_PREV_on || IS_BIND_BUTTON_FLAG_on || (cur_protocol[1]&0x80)!=0 ) )
 		{

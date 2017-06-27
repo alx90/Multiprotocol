@@ -9,7 +9,7 @@ frequency hopping passi per quel canale.
 
 1) info telefonata
 - DSMx usa 23 canali, per mettersi in ascolto e beccare l'id si può selezionare un canale fisso su cui ascoltare e poi una volta che rilevo qualcosa 
-leggo i primi 2 byte dei dati ricevuti (quando fanno il binding mandano 4 dati ma in realtà sono utilizzati solo i primi 2?) e dovrei avere l'id...
+leggo i primi 2 byte dei dati ricevuti (quando fanno il binding mandano 4 byte ma in realtà sono utilizzati solo i primi 2?) e dovrei avere l'id...
 
 - Con l'id genero la sequenza di canali attraverso l'algoritmo di frequency hopping esistente, 
 
@@ -35,7 +35,20 @@ modified flow [PPM interface, no telemetry]:
 		|-> while(IS_WAIT_BIND_on) { updateAll() }
 											|
 											|-> protocolInit() //??? when exactly does this get called
+											
+setup {
+	// Read or create protocol id
+	MProtocol_id_master=random_id(10,false);		// #alx# main protocol id creation, this will be used to generate TX/RX_ID
+}
+protocolInit() {
+	// #alx# global TX/RX_ID to bind Multi-module with Receiver
+	//Set global ID and rx_tx_addr
+	MProtocol_id = RX_num + MProtocol_id_master;
+	set_rx_tx_addr(MProtocol_id);
+}
+initDsm() {
 
+}
 COMINCIA L'IMPLENTAZIONE DAL readDsm() DOVE VA INSERITO IL LOOP DI ASCOLTO E POI TORNA INDIETRO 
 ALLA FASE DI SETUP CONSAPEVOLE DI QUELLO CHE SERVE PER ENTRARE NEL LOOP
 		

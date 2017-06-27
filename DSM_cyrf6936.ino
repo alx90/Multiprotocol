@@ -27,6 +27,10 @@
  * #alx# phases enum, phases can stay the same or change at every loop according to operations flow
  */
 enum {
+	// alx {
+	DSM_INTERCEPT_CHECK,
+	DSM_INTERCEPT_READ,
+	// } alx
 	DSM_BIND_WRITE=0,
 	DSM_BIND_CHECK,
 	DSM_BIND_READ,
@@ -179,6 +183,7 @@ static void __attribute__((unused)) DSM_build_bind_packet()
 {
 	uint8_t i;
 	uint16_t sum = 384 - 0x10;//
+	// #alx# first 4 bytes of the BIND_PACKET contain TxId, second 4 bytes replicate the first 4
 	packet[0] = 0xff ^ cyrfmfg_id[0];
 	packet[1] = 0xff ^ cyrfmfg_id[1];
 	packet[2] = 0xff ^ cyrfmfg_id[2];
@@ -255,6 +260,7 @@ static void __attribute__((unused)) DSM_build_data_packet(uint8_t upper)
 	if(prev_option!=option)
 		DSM_update_channels();
 
+	// #alx# first 2 bytes of data packet should contain TxId
 	if (sub_protocol==DSMX_11 || sub_protocol==DSMX_22 )
 	{
 		packet[0] = cyrfmfg_id[2];
@@ -375,10 +381,68 @@ uint16_t ReadDsm()
 		uint8_t rx_phase;
 		uint8_t len;
 	#endif
+	// alx {
+	#if defined DSM_INTERCEPT_RADIO
+		uint8_t intx_phase;
+		uint8_t intx_len;
+	#endif
+	// } alx
 	uint8_t start;
 	
-	switch(phase)
-	{
+	switch(phase) {
+		// #alx# {
+		#if defined DSM_INTERCEPT_RADIO
+			// TODO remember to set on a fixed channel before receiving
+			case DSM_INTERCEPT_CHECK:
+				CYRF_SetTxRxMode(RX_EN);						// Receive mode
+				CYRF_WriteRegister(CYRF_05_RX_CTRL, 0x87);		// Prepare to receive #alx# sets RX_GO
+				phase++;										// switch to INTERCEPT_READ
+				return 2000;									// calling INTERCEPT_READ in 2ms
+			case DSM_INTERCEPT_READ:
+				//Read data from other radios
+				/**
+				 * #alx#
+				 * CYRF_07_RX_IRQ_STATUS last 3 bits interrupt requests -> 2=RXBE (buffer error); 1=RXC (complete); 0=RXE (receive error)
+				 */
+				intx_phase = CYRF_ReadRegister(CYRF_07_RX_IRQ_STATUS);
+
+				if((intx_phase & 0x03) == 0x02) { 					// RXC=1, RXE=0 then 2nd check is required (debouncing)
+					intx_phase |= CYRF_ReadRegister(CYRF_07_RX_IRQ_STATUS);
+				}
+
+				if((intx_phase & 0x07) == 0x02) { // data received with no errors #alx# RXBE=0, RXC=1, RXE=0
+					CYRF_WriteRegister(CYRF_07_RX_IRQ_STATUS, 0x80);	// need to set RXOW before data read
+
+					intx_len=CYRF_ReadRegister(CYRF_09_RX_COUNT);		// #alx# check length of received data
+					if(intx_len>MAX_PKT-2) {
+						intx_len=MAX_PKT-2;
+					}
+
+					// reading received packet and extracting transmissionId from it
+					CYRF_ReadDataPacketLen(pkt+1, intx_len);
+					// maybe just the first 2 bytes are needed
+					cyrfmfg_id[0] = pkt[0];
+					cyrfmfg_id[1] = pkt[1];
+					cyrfmfg_id[2] = pkt[2];
+					cyrfmfg_id[3] = pkt[3];
+
+					// TODO before calculating channels sequence, something needs to be done on rx_tx_address too.
+					DSM_calc_dsmx_channel();
+
+					phase = DSM_CHANSEL;			// skip binding and go straight to chansel in this case
+					// check how to sync and anticipate transmission, maybe jumping from here to chansel with an anticipation is enough???
+//					ANTICIPATE_TX_on;
+					return 2000;					//
+				} else if((intx_phase & 0x02) != 0x02) { // data received with errors
+						CYRF_WriteRegister(CYRF_29_RX_ABORT, 0x20);	// Abort RX operation
+						CYRF_SetTxRxMode(RX_EN);					// Force end state read
+						CYRF_WriteRegister(CYRF_29_RX_ABORT, 0x00);	// Clear abort RX operation
+						CYRF_WriteRegister(CYRF_05_RX_CTRL, 0x83);	// Prepare to receive
+				}
+
+				return 7000;		// #alx# if nothing has been received, try to read again in 7ms
+		#endif
+		// } alx
 		// #alx# fixed BIND_PACKET send phase
 		case DSM_BIND_WRITE:
 			if(bind_counter--==0)
@@ -388,9 +452,9 @@ uint16_t ReadDsm()
 				phase=DSM_CHANSEL;							//Switch to normal mode
 			#endif
 			CYRF_WriteDataPacket(packet);					// #alx# send pre built BIND_PACKET to receiver (chip is in TX mode at this point)
-			return 10000;
+			return 10000;									// #alx# send a BIND_PACKET every 10ms
 	#if defined DSM_TELEMETRY
-		// #alx# set chip into receive mode, and check if any answer from possible receivers is found (sets a timeout before checking again)
+		// #alx# set chip into receive mode, prepare for reading  (sets a timeout before checking again)
 		case DSM_BIND_CHECK:
 			//64 SDR Mode is configured so only the 8 first values are needed but we need to write 16 values...
 			CYRF_ConfigDataCode((const uint8_t *)"\x98\x88\x1B\xE4\x30\x79\x03\x84\xC9\x2C\x06\x93\x86\xB9\x9E\xD7", 16);
@@ -433,7 +497,7 @@ uint16_t ReadDsm()
 				phase++;									// DSM_CHANSEL
 				return 7000 ;
 			}
-			return 7000;
+			return 7000;		// #alx# if nothing has been received, try to read again in 7ms
 	#endif
 		// #alx# this case gets called when BINDING is completed (WRITE + CHECK + READ)
 		case DSM_CHANSEL:
@@ -589,6 +653,19 @@ uint16_t initDsm()
 	}
 	else
 		phase = DSM_CHANSEL;			// #alx# selected if binding is already done
+	return 10000;
+}
+
+// #alx# DSM protocol init in case INTERCEPT_RADIO mode is enabled
+uint16_t initDsmIntx() {
+	// skipping all TxId related operations, TxId will be retrieved from other radios later
+	// TODO configure chip and choose listening channel before proceeding
+	DSM_cyrf_config();
+	// #alx# setting CYRF chip into RX mode in order to listen for other radios
+//	CYRF_SetTxRxMode(RX_EN);
+	DSM_update_channels();
+
+	phase = DSM_INTERCEPT_CHECK;	// select the first phase to be executed  when "looping" remote_callback() [ReadDsm()]
 	return 10000;
 }
 

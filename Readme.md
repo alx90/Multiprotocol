@@ -352,6 +352,16 @@ uint16_t ReadDsm() {	// ##DSM_cyrf6936.ino-->ReadDsm()##
 	  sei();
 	}
 	```
+- _BV is a macro used in Arduino to manipulate single bits. Here is the _BV() macro definition:
+	``` c
+	#define _BV(bit) (1 << (bit))
+	```
+	So _BV(7) simply shifts the 1 left of 7 places. Now there are some peculiar instructions used to manipulate single bits:
+	``` c
+	PORTB |= _BV(5);	// SET bit 5 of PORTB
+	PORTB &= ~_BV(5);	// CLEAR bit 5 of PORTB
+	```
+	The compiler recognizes the |= () and the &= ~() forms and reduces them to a single instruction, sbi or cbi.
 
 ## TODO
 - __FW COMPILATION:__ try to import the project into Arduino IDE in windows env and make it compile. If it compiles, try to make the same in Sloeber under windows. Check [Compiling and Programming guide](https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/blob/master/docs/Compiling.md) for IDE settings.

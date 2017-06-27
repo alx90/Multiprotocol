@@ -35,10 +35,10 @@
 /*************************/
 /*** BIND FROM CHANNEL ***/
 /*************************/
-//Bind from channel enables you to bind when a specified channel is giong from low to high. This feature is only active
+//Bind from channel enables you to bind when a specified channel is going from low to high. This feature is only active
 // if you specify AUTOBIND in PPM mode or set AutoBind to YES for serial mode. It also requires that the throttle channel is low.
 
-//Comment to globaly disable the bind feature from a channel.
+//Comment to globally disable the bind feature from a channel.
 #define ENABLE_BIND_CH
 
 //Set the channel number used for bind. Default is 16.
@@ -74,7 +74,7 @@
 /*****************/
 /*** GLOBAL ID ***/
 /*****************/
-// #alx# check this about TX/RX_ID
+// #alx# check this about TxId
 //A global ID is used by most protocols to bind and retain the bind to models. To prevent duplicate IDs, it is automatically
 // generated using a random 32 bits number the first time the eeprom is initialized.
 //If you have 2 Multi modules which you want to share the same ID so you can use either to control the same RC model
@@ -379,3 +379,15 @@ const PPM_Parameters PPM_prot[15]=	{
 
 // Option: the value is between -128 and +127.
 // The option value is only valid for some protocols, read this page for more information: https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/blob/master/Protocols_Details.md
+
+/********************************/
+/*** RADIO INTERCEPT SETTINGS ***/
+/********************************/
+// In this section you can configure the RADIO_INTERCEPT mode for DSM protocol.
+// When RADIO_INTERCEPT mode is active: once started the module will keep listening for other transmitters in order to "steal"
+// their TxId and take control over their own receiver (anticipating their transmissions by a fraction of time).
+// Note: in this mode automatic and manual binding operations are not allowed, so the module will just
+// keep on listening until any signals from other radios are found.
+
+// If you do not plan using the RADIO_INTERCEPT function, comment this global setting using "//".
+#define DSM_INTERCEPT_RADIO
