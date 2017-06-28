@@ -380,14 +380,16 @@ const PPM_Parameters PPM_prot[15]=	{
 // Option: the value is between -128 and +127.
 // The option value is only valid for some protocols, read this page for more information: https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/blob/master/Protocols_Details.md
 
+// alx {
 /********************************/
 /*** RADIO INTERCEPT SETTINGS ***/
 /********************************/
 // In this section you can configure the RADIO_INTERCEPT mode for DSM protocol.
-// When RADIO_INTERCEPT mode is active: once started the module will keep listening for other transmitters in order to "steal"
+// When RADIO_INTERCEPT mode is active, once started the module will keep listening for other transmitters in order to "steal"
 // their TxId and take control over their own receiver (anticipating their transmissions by a fraction of time).
-// Note: in this mode automatic and manual binding operations are not allowed, so the module will just
-// keep on listening until any signals from other radios are found.
+// IMPORTANT NOTE: when activating this mode, all automatic and manual binding operations are disabled!!!
+// So module will just keep on listening until any signals from other radios are found.
 
 // If you do not plan using the RADIO_INTERCEPT function, comment this global setting using "//".
 #define DSM_INTERCEPT_RADIO
+// } alx

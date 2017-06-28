@@ -19,6 +19,12 @@
 
 #define DSM_BIND_CHANNEL 0x0d //13 This can be any odd channel
 
+// alx {
+#if defined DSM_INTERCEPT_RADIO
+	#define DSM_INTX_CHANNEL 0x01 // This can be potentially any channel
+#endif
+// } alx
+
 //During binding we will send BIND_COUNT/2 packets
 //One packet each 10msec
 #define DSM_BIND_COUNT 300
@@ -219,7 +225,7 @@ static void __attribute__((unused)) DSM_build_bind_packet()
 	packet[15] = sum & 0xff;
 }
 
-// #alx# initialize bindig phase
+// #alx# initialize binding phase
 static void __attribute__((unused)) DSM_initialize_bind_phase()
 {
 	CYRF_ConfigRFChannel(DSM_BIND_CHANNEL); //This seems to be random?		#alx# set fixed channel for binding (channel 13)
@@ -392,9 +398,8 @@ uint16_t ReadDsm()
 	switch(phase) {
 		// #alx# {
 		#if defined DSM_INTERCEPT_RADIO
-			// TODO remember to set on a fixed channel before receiving
 			case DSM_INTERCEPT_CHECK:
-				CYRF_SetTxRxMode(RX_EN);						// Receive mode
+//				CYRF_SetTxRxMode(RX_EN);						// Receive mode
 				CYRF_WriteRegister(CYRF_05_RX_CTRL, 0x87);		// Prepare to receive #alx# sets RX_GO
 				phase++;										// switch to INTERCEPT_READ
 				return 2000;									// calling INTERCEPT_READ in 2ms
@@ -418,9 +423,9 @@ uint16_t ReadDsm()
 						intx_len=MAX_PKT-2;
 					}
 
-					// reading received packet and extracting transmissionId from it
+					// reading received packet and extracting TxId from it...
 					CYRF_ReadDataPacketLen(pkt+1, intx_len);
-					// maybe just the first 2 bytes are needed
+					// maybe just the first 2 bytes are needed???
 					cyrfmfg_id[0] = pkt[0];
 					cyrfmfg_id[1] = pkt[1];
 					cyrfmfg_id[2] = pkt[2];
@@ -607,6 +612,7 @@ uint16_t ReadDsm()
 // #alx# DSM protocol init, this method sets the chip to TX mode and performs preliminary binding operations
 uint16_t initDsm()
 { 
+	// #alx# TxId related operations
 	CYRF_GetMfgData(cyrfmfg_id);
 	//Model match
 	cyrfmfg_id[3]^=RX_num;
@@ -619,7 +625,7 @@ uint16_t initDsm()
 	   sop_col = (cyrfmfg_id[0] + cyrfmfg_id[1] + cyrfmfg_id[2] + 2) & 0x07;
 	}
 	//Hopping frequencies
-	// #alx# the transmitter changes channel at each loop according to a certain "hopping" pattern. Channel list calculation is based on Tx/RX_ID
+	// #alx# the transmitter changes channel at each loop according to a certain "hopping" pattern. Channel list calculation is based on TxId
 	if (sub_protocol == DSMX_11 || sub_protocol == DSMX_22)
 		DSM_calc_dsmx_channel();
 	else
@@ -656,17 +662,19 @@ uint16_t initDsm()
 	return 10000;
 }
 
-// #alx# DSM protocol init in case INTERCEPT_RADIO mode is enabled
-uint16_t initDsmIntx() {
-	// skipping all TxId related operations, TxId will be retrieved from other radios later
-	// TODO configure chip and choose listening channel before proceeding
-	DSM_cyrf_config();
-	// #alx# setting CYRF chip into RX mode in order to listen for other radios
-//	CYRF_SetTxRxMode(RX_EN);
-	DSM_update_channels();
+// alx {
+#if defined DSM_INTERCEPT_RADIO
+	// #alx# DSM protocol init in case DSM_INTERCEPT_RADIO mode is enabled
+	uint16_t initDsmIntx() {
+		// skipping all TxId related operations, TxId will be retrieved from other radios later
+		CYRF_ConfigRFChannel(DSM_INTX_CHANNEL);	// configure listening channel before proceeding
+		CYRF_SetTxRxMode(RX_EN);	// set CYRF into RX mode in order to listen for other radios
+		DSM_update_channels();
 
-	phase = DSM_INTERCEPT_CHECK;	// select the first phase to be executed  when "looping" remote_callback() [ReadDsm()]
-	return 10000;
-}
+		phase = DSM_INTERCEPT_CHECK;	// select the first phase to be executed  when "looping" remote_callback() [ReadDsm()]
+		return 10000;
+	}
+#endif
+// } alx
 
 #endif

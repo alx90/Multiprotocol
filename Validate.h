@@ -143,3 +143,9 @@
 #if MAX_PPM_CHANNELS>16
 	#error MAX_PPM_CHANNELS must be below or equal to 16. The default for this value is 16.
 #endif
+
+// alx {
+#if defined DSM_INTERCEPT_RADIO && (not defined CYRF6936_INSTALLED || not defined DSM_CYRF6936_INO)
+	#error both CYRF6936_INSTALLED and DSM_CYRF6936_INO protocol must be defined in order to use DSM_INTERCEPT_RADIO function.
+#endif
+// } alx
