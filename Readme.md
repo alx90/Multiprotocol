@@ -25,7 +25,7 @@ The firmware lets the board interface with 2 main HW components:
 
 ## Resources
 * [Original Multiprotocol code analysis](docs/analysis.md)
-* [Some minor technical notes about Arduino](docs/arduino_notes.md)
+* [Some minor technical notes](docs/techref.md)
 
 ## FW Implementation:
 - __Logical flow:__
@@ -35,8 +35,9 @@ The firmware lets the board interface with 2 main HW components:
 		- Start transmitting with the same channel sequence and TxId, anticipating the other radio by a fraction of time.
 - __Tasks:__
 	- [x] Make the DSM_RADIO_INTERCEPT mode selectable from _Config.h;
-	- [x] Change Validate.h so that both CYRF chip and DSM protocol must be selected in order to activate DSM_INTERCEPT_RADIO mode;
+	- [x] Change Validate.h so that both CYRF chip and DSM protocol must be selected, and WAIT_FOR_BIND must be disabled in order to activate DSM_INTERCEPT_RADIO mode;
 	- [x] Change setup sequence so that the new DSM_RADIO_INTERCEPT phases are selected before looping (if the feature is enabled);
-	- [x] Add DSM_RADIO_INTERCEPT logic into ReadDsm() by defining new phases (each phase corresponds to a case in ReadDsm main switch block);
-	- [ ] Sync and Anticipate transmission TODO
+	- [ ] Add DSM_RADIO_INTERCEPT logic into ReadDsm() by defining new phases (each phase corresponds to a case in ReadDsm main switch block);
+		- [ ] Check how to read TxId from other radios and how to accordingly set tx_rx_address TODO  
+		- [ ] Sync and Anticipate transmission TODO
 	

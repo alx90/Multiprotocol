@@ -666,7 +666,9 @@ uint16_t initDsm()
 #if defined DSM_INTERCEPT_RADIO
 	// #alx# DSM protocol init in case DSM_INTERCEPT_RADIO mode is enabled
 	uint16_t initDsmIntx() {
+		BIND_DONE;	// binding is not necessary in this case
 		// skipping all TxId related operations, TxId will be retrieved from other radios later
+
 		CYRF_ConfigRFChannel(DSM_INTX_CHANNEL);	// configure listening channel before proceeding
 		CYRF_SetTxRxMode(RX_EN);	// set CYRF into RX mode in order to listen for other radios
 		DSM_update_channels();

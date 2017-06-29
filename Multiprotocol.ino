@@ -309,18 +309,9 @@ void setup()
 	//Wait for every component to start
 	delayMilliseconds(100);
 	
-	// alx {
-	#ifdef DSM_INTERCEPT_RADIO
-		// While in intercept mode, disable all binding flags
-		BIND_BUTTON_FLAG_off;
-		AUTOBIND_FLAG_off;
-		WAIT_BIND_off;		// probably clearing just this could be enough, needs testing...
-	#else
-		// Read status of bind button
-		if( IS_BIND_BUTTON_on )		// #alx# if pressing the BIND_BUTTON at startup, BIND_BUTTON_FLAG is set to ON
-			BIND_BUTTON_FLAG_on;	// If bind button pressed save the status for protocol id reset under hubsan
-	#endif
-	// } alx
+	// Read status of bind button
+	if( IS_BIND_BUTTON_on )		// #alx# if pressing the BIND_BUTTON at startup, BIND_BUTTON_FLAG is set to ON
+		BIND_BUTTON_FLAG_on;	// If bind button pressed save the status for protocol id reset under hubsan
 
 	// Read status of mode select binary switch
 	// after this mode_select will be one of {0000, 0001, ..., 1111}

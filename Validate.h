@@ -145,7 +145,12 @@
 #endif
 
 // alx {
-#if defined DSM_INTERCEPT_RADIO && (not defined CYRF6936_INSTALLED || not defined DSM_CYRF6936_INO)
-	#error both CYRF6936_INSTALLED and DSM_CYRF6936_INO protocol must be defined in order to use DSM_INTERCEPT_RADIO function.
+#if defined DSM_INTERCEPT_RADIO
+	#if not defined CYRF6936_INSTALLED || not defined DSM_CYRF6936_INO
+		#error both CYRF6936_INSTALLED and DSM_CYRF6936_INO protocol must be defined in order to use DSM_INTERCEPT_RADIO function.
+	#endif
+	#ifdef WAIT_FOR_BIND
+		#error WAIT_FOR_BIND feature cannot be enabled while using DSM_INTERCEPT_RADIO mode.
+	#endif
 #endif
 // } alx

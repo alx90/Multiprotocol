@@ -26,11 +26,9 @@
 	3. READ: Read response data if any answer has been received.
 - __FW compilation:__ the code seems to compile ONLY on _windows_, using _Arduino IDE_. Some specific IDE settings must be set, check [Compiling and Programming guide](https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/blob/master/docs/Compiling.md).
 
-## Raw Flow Analysis (no WAIT_FOR_BIND)
+## Raw Flow Analysis
 ```c
 setup() {
-	...
-	if( IS_BIND_BUTTON_on )	{BIND_BUTTON_FLAG_on;}
 	...
 	SERIAL {
 		Mprotocol_serial_init();	// serial setup end

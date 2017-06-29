@@ -5,4 +5,5 @@ Release
 .cproject
 .ino.cpp
 .project
-.Readme*
+.*.md.html
+/Validate.h

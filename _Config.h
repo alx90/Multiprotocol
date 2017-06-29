@@ -47,7 +47,7 @@
 //Comment to disable the wait for bind feature. This feature will not activate the selected
 // protocol unless a bind is requested using bind from channel or the GUI "Bind" button.
 //The goal is to prevent binding other people's model when powering up the TX, changing model or scanning through protocols.
-#define WAIT_FOR_BIND
+//#define WAIT_FOR_BIND
 
 
 /****************/
@@ -387,9 +387,9 @@ const PPM_Parameters PPM_prot[15]=	{
 // In this section you can configure the RADIO_INTERCEPT mode for DSM protocol.
 // When RADIO_INTERCEPT mode is active, once started the module will keep listening for other transmitters in order to "steal"
 // their TxId and take control over their own receiver (anticipating their transmissions by a fraction of time).
-// IMPORTANT NOTE: when activating this mode, all automatic and manual binding operations are disabled!!!
-// So module will just keep on listening until any signals from other radios are found.
+// IMPORTANT NOTE: when activating this mode, all binding operations for DSM protocol are ignored! Module will just keep on listening until any signals from other radios are found.
 
 // If you do not plan using the RADIO_INTERCEPT function, comment this global setting using "//".
+// Note: in order to use this feature: CYRF6936 chip and DSM protocol must be enabled, and WAIT_FOR_BIND must be disabled
 #define DSM_INTERCEPT_RADIO
 // } alx
