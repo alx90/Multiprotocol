@@ -1,6 +1,6 @@
 # Multiprotocol Tx Module firmware
 This project has been forked from [DIY-Multiprotocol-TX-Module](https://github.com/pascallanger/DIY-Multiprotocol-TX-Module) with the aim to add a particular mode called "DSM_RADIO_INTERCEPT" to the original Multiprotocol FW. When the selected transmission protocol is DSMx and this specific feature is enabled, the module will listen for incoming signals from other radios in the area and, if any radio is found, the FW will take over the already transmitting radio, gaining control over its receiver. <br/>
-_Note that with this feature enabled, all binding operations will be disabled and FW will just keep on listening for other radios._
+_Note that with this feature enabled, all binding operations for DSM protocol will be ignored and FW will just keep on listening for other radios._
 
 ## Quicklinks
 * [Compiling and Programming guide](https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/blob/master/docs/Compiling.md)
