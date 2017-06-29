@@ -22,6 +22,7 @@
 // alx {
 #if defined DSM_INTERCEPT_RADIO
 	#define DSM_INTX_CHANNEL 0x01 // This can be potentially any channel
+	#define DSM_INTX_ADVANCE 5000 // Transmission advance interval
 #endif
 // } alx
 
@@ -391,6 +392,8 @@ uint16_t ReadDsm()
 	#if defined DSM_INTERCEPT_RADIO
 		uint8_t intx_phase;
 		uint8_t intx_len;
+		uint8_t intx_pkt[40]; // same size of packet used in DSM_build_bind_packet()
+		uint8_t intx_advance_flag = 0x00; // flag used in order to anticipate first transmission to the intercepted model
 	#endif
 	// } alx
 	uint8_t start;
@@ -401,8 +404,8 @@ uint16_t ReadDsm()
 			case DSM_INTERCEPT_CHECK:
 //				CYRF_SetTxRxMode(RX_EN);						// Receive mode
 				CYRF_WriteRegister(CYRF_05_RX_CTRL, 0x87);		// Prepare to receive #alx# sets RX_GO
-				phase++;										// switch to INTERCEPT_READ
-				return 2000;									// calling INTERCEPT_READ in 2ms
+				phase++;										// switch to DSM_INTERCEPT_READ
+				return 2000;									// calling DSM_INTERCEPT_READ in 2ms
 			case DSM_INTERCEPT_READ:
 				//Read data from other radios
 				/**
@@ -423,21 +426,18 @@ uint16_t ReadDsm()
 						intx_len=MAX_PKT-2;
 					}
 
-					// reading received packet and extracting TxId from it...
-					CYRF_ReadDataPacketLen(pkt+1, intx_len);
-					// maybe just the first 2 bytes are needed???
-					cyrfmfg_id[0] = pkt[0];
-					cyrfmfg_id[1] = pkt[1];
-					cyrfmfg_id[2] = pkt[2];
-					cyrfmfg_id[3] = pkt[3];
+					CYRF_ReadDataPacketLen(intx_pkt, intx_len);	// reading received packet and extracting TxId from it
+					// TxId seems to occupy 2 bytes in DATA_PACKETS and 4 in BIND_PACKET... check DSM_build_data_packet and DSM_build_bind_packet...
+					cyrfmfg_id[0] = intx_pkt[0];
+					cyrfmfg_id[1] = intx_pkt[1];
+					cyrfmfg_id[2] = intx_pkt[0];
+					cyrfmfg_id[3] = intx_pkt[1];
 
-					// TODO before calculating channels sequence, something needs to be done on rx_tx_address too.
-					DSM_calc_dsmx_channel();
+					DSM_calc_dsmx_channel();		// calculate hopping frequencies
+					phase = DSM_CHANSEL;			// skip binding and go straight to CHANSEL in this case
 
-					phase = DSM_CHANSEL;			// skip binding and go straight to chansel in this case
-					// check how to sync and anticipate transmission, maybe jumping from here to chansel with an anticipation is enough???
-//					ANTICIPATE_TX_on;
-					return 2000;					//
+					intx_advance_flag = 0xFF;	// raise this flag to anticipate transmission... needs testing...
+					return 2000;
 				} else if((intx_phase & 0x02) != 0x02) { // data received with errors
 						CYRF_WriteRegister(CYRF_29_RX_ABORT, 0x20);	// Abort RX operation
 						CYRF_SetTxRxMode(RX_EN);					// Force end state read
@@ -511,8 +511,16 @@ uint16_t ReadDsm()
 			CYRF_SetTxRxMode(TX_EN); 						// #alx# binding is completed, can switch to Transmission mode
 			hopping_frequency_no = 0;
 			phase = DSM_CH1_WRITE_A;						// in fact phase++
-			DSM_set_sop_data_crc();
-			return 10000;
+			DSM_set_sop_data_crc();							// #alx# change channel according to the hopping frequencies
+
+			// alx {
+			if (intx_advance_flag && 0xFF) {
+				intx_advance_flag = 0x00;
+				return 10000 - DSM_INTX_ADVANCE;		// anticipating only first transmission to the receiver. needs testing...
+			} else {
+				return 10000;
+			}
+			// } alx
 		// #alx# the following cases get called after CHANSEL in order to send control data to the receiver
 		case DSM_CH1_WRITE_A:
 		case DSM_CH1_WRITE_B:

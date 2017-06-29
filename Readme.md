@@ -37,7 +37,5 @@ The firmware lets the board interface with 2 main HW components:
 	- [x] Make the DSM_RADIO_INTERCEPT mode selectable from _Config.h;
 	- [x] Change Validate.h so that both CYRF chip and DSM protocol must be selected, and WAIT_FOR_BIND must be disabled in order to activate DSM_INTERCEPT_RADIO mode;
 	- [x] Change setup sequence so that the new DSM_RADIO_INTERCEPT phases are selected before looping (if the feature is enabled);
-	- [ ] Add DSM_RADIO_INTERCEPT logic into ReadDsm() by defining new phases (each phase corresponds to a case in ReadDsm main switch block);
-		- [ ] Check how to read TxId from other radios and how to accordingly set tx_rx_address TODO  
-		- [ ] Sync and Anticipate transmission TODO
+	- [x] Add DSM_RADIO_INTERCEPT logic into ReadDsm() by defining new phases (each phase corresponds to a case in ReadDsm main switch block);
 	

@@ -442,7 +442,7 @@ void loop()
 			TX_MAIN_PAUSE_on;
 			tx_pause();
 			if(IS_INPUT_SIGNAL_on && remote_callback!=0)
-				next_callback=remote_callback();	// #alx# this is where remote_callback() gets actually called - note that after setup remote_callback() is readDSM()
+				next_callback=remote_callback();	// #alx# this is where remote_callback() gets actually called (for DSM protocol remote_callback() is defined as ReadDsm())
 			else
 				next_callback=2000;					// No PPM/serial signal check again in 2ms...
 			TX_MAIN_PAUSE_off;

@@ -14,3 +14,4 @@ anticipo solo il primo pacchetto che invio.
 
 ## OPEN POINTS
 - Approfondire come avviene la sincronizzazione (il ricevitore si sincronizza automaticamente con il primo segnale che riceve???) e come realizzare l'anticipo della trasmissione.
+- Controlla la READ del TxId una volta intercettato il radiocomando (2byte, 4bytes ???). E' necessario anche set tx_rx_address???
