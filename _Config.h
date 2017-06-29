@@ -390,6 +390,6 @@ const PPM_Parameters PPM_prot[15]=	{
 // IMPORTANT NOTE: when activating this mode, all binding operations for DSM protocol are ignored! Module will just keep on listening until any signals from other radios are found.
 
 // If you do not plan using the RADIO_INTERCEPT function, comment this global setting using "//".
-// Note: in order to use this feature: CYRF6936 chip and DSM protocol must be enabled, and WAIT_FOR_BIND must be disabled
+// Note: in order to use this feature: CYRF6936 chip and DSM protocol must be enabled, while WAIT_FOR_BIND setting must be disabled
 #define DSM_INTERCEPT_RADIO
 // } alx

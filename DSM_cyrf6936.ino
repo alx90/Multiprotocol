@@ -22,7 +22,7 @@
 // alx {
 #if defined DSM_INTERCEPT_RADIO
 	#define DSM_INTX_CHANNEL 0x01 // This can be potentially any channel
-	#define DSM_INTX_ADVANCE 5000 // Transmission advance interval
+	#define DSM_INTX_ADVANCE 5000 // First transmission advance interval
 #endif
 // } alx
 
@@ -30,9 +30,7 @@
 //One packet each 10msec
 #define DSM_BIND_COUNT 300
 
-/*
- * #alx# phases enum, phases can stay the same or change at every loop according to operations flow
- */
+// #alx# phases enum, phases can stay the same or change at every loop according to operations flow
 enum {
 	// alx {
 	DSM_INTERCEPT_CHECK=0,
@@ -190,7 +188,7 @@ static void __attribute__((unused)) DSM_build_bind_packet()
 {
 	uint8_t i;
 	uint16_t sum = 384 - 0x10;//
-	// #alx# first 4 bytes of the BIND_PACKET contain TxId, second 4 bytes replicate the first 4
+	// #alx# first 4 bytes of the BIND_PACKET contain TxId, second 4 bytes replicate the first 4...
 	packet[0] = 0xff ^ cyrfmfg_id[0];
 	packet[1] = 0xff ^ cyrfmfg_id[1];
 	packet[2] = 0xff ^ cyrfmfg_id[2];
@@ -267,7 +265,7 @@ static void __attribute__((unused)) DSM_build_data_packet(uint8_t upper)
 	if(prev_option!=option)
 		DSM_update_channels();
 
-	// #alx# first 2 bytes of data packet should contain TxId
+	// #alx# only first 2 bytes of data packet contain TxId...
 	if (sub_protocol==DSMX_11 || sub_protocol==DSMX_22 )
 	{
 		packet[0] = cyrfmfg_id[2];
@@ -301,6 +299,7 @@ static void __attribute__((unused)) DSM_build_data_packet(uint8_t upper)
 	}
 }
 
+// #alx# here channel switches according to frequency_hopping
 static void __attribute__((unused)) DSM_set_sop_data_crc()
 {
 	//The crc for channel '1' is NOT(mfgid[0] << 8 + mfgid[1])
@@ -327,6 +326,7 @@ static void __attribute__((unused)) DSM_set_sop_data_crc()
 		hopping_frequency_no %=2;
 }
 
+// #alx# here channel list is generated according to frequency hopping
 static void __attribute__((unused)) DSM_calc_dsmx_channel()
 {
 	uint8_t idx = 0;
@@ -408,10 +408,7 @@ uint16_t ReadDsm()
 				return 2000;									// calling DSM_INTERCEPT_READ in 2ms
 			case DSM_INTERCEPT_READ:
 				//Read data from other radios
-				/**
-				 * #alx#
-				 * CYRF_07_RX_IRQ_STATUS last 3 bits interrupt requests -> 2=RXBE (buffer error); 1=RXC (complete); 0=RXE (receive error)
-				 */
+				// #alx# CYRF_07_RX_IRQ_STATUS last 3 bits interrupt requests -> 2=RXBE (buffer error); 1=RXC (complete); 0=RXE (receive error)
 				intx_phase = CYRF_ReadRegister(CYRF_07_RX_IRQ_STATUS);
 
 				if((intx_phase & 0x03) == 0x02) { 					// RXC=1, RXE=0 then 2nd check is required (debouncing)
@@ -504,7 +501,7 @@ uint16_t ReadDsm()
 			}
 			return 7000;		// #alx# if nothing has been received, try to read again in 7ms
 	#endif
-		// #alx# this case gets called when BINDING is completed (WRITE + CHECK + READ)
+		// #alx# this case gets called when BINDING is completed (WRITE + CHECK + READ), here channel is selected according to frequency_hopping
 		case DSM_CHANSEL:
 			BIND_DONE;
 			DSM_cyrf_configdata();
@@ -674,7 +671,6 @@ uint16_t initDsm()
 #if defined DSM_INTERCEPT_RADIO
 	// #alx# DSM protocol init in case DSM_INTERCEPT_RADIO mode is enabled
 	uint16_t initDsmIntx() {
-		BIND_DONE;	// skip all binding operations
 		// skip all TxId related operations, TxId will be retrieved from other radios later
 
 		CYRF_ConfigRFChannel(DSM_INTX_CHANNEL);	// configure listening channel before proceeding
